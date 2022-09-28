@@ -60,7 +60,7 @@ fig = px.density_mapbox(pd_seatmp,
                         z=pd_seatmp.SeaTemperature, 
                         radius=15, 
                         center=dict(lat=54.2753, lon=-10.29737), 
-                        zoom=5, 
+                        zoom=6, 
                         mapbox_style="stamen-terrain")
 fig.show()
 
@@ -121,7 +121,7 @@ fig = px.density_mapbox(biggest_wtr_lvl,
                         z=biggest_wtr_lvl.Water_Level_LAT, 
                         radius=20, 
                         center=dict(lat=55.3717, lon=-7.3344), 
-                        zoom=5, 
+                        zoom=7, 
                         mapbox_style="stamen-terrain")
 fig.show()
 

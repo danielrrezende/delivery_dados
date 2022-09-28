@@ -80,7 +80,7 @@ display(target_stats_df.reset_index())
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Verifique o número de valores ausentes na coluna de destino
+# MAGIC Verifique o número de valores ausentes na coluna de target
 
 # COMMAND ----------
 
@@ -250,11 +250,7 @@ display(plot_periodogram(temperature.MeanSeaTemperature))
 # MAGIC %md
 # MAGIC ### Deterministic Process
 # MAGIC 
-# MAGIC Usar esta função nos ajudará a evitar alguns casos de falha complicados que podem surgir com séries temporais e regressão linear. O argumento de ordem refere-se à ordem polinomial: 1 para linear, 2 para quadrático, 3 para cúbico e assim por diante.
-# MAGIC 
-# MAGIC DeterministicProcess, usado para criar recursos de tendência. Para usar dois períodos sazonais (semanal e anual), precisaremos instanciar um deles como um "termo adicional":
-# MAGIC 
-# MAGIC Um processo determinístico, a propósito, é um termo técnico para uma série temporal que não é aleatória ou completamente determinada, como as séries const e tendência. Os recursos derivados do índice de tempo geralmente serão determinísticos.
+# MAGIC DeterministicProcess, usado para criar recursos de tendência. Para usar dois períodos sazonais (semanal e anual), precisaremos instanciar um deles como um "termo adicional". O argumento de ordem refere-se à ordem polinomial: 1 para linear, 2 para quadrático, 3 para cúbico e assim por diante.
 
 # COMMAND ----------
 
@@ -264,14 +260,12 @@ fourier = CalendarFourier(freq="A", order=10)  # 10 sin/cos pairs for "A"nnual s
 
 dp = DeterministicProcess(
     index=temperature.index,
-    constant=True,               # dummy feature for bias (y-intercept)
     order=1,                     # trend (order 1 means linear)
-    seasonal=True,               # weekly seasonality (indicators)
-    additional_terms=[fourier],  # annual seasonality (fourier)
-    drop=True,                   # drop terms to avoid collinearity
+    seasonal=True,               # weekly seasonality (indicators) 
+    additional_terms=[fourier],  # annual seasonality (fourier) Para usar dois períodos sazonais (semanal e anual), precisaremos instanciar um deles como um "termo adicional"
 )
 
-X = dp.in_sample()  # create features for dates in temperature.index
+X = dp.in_sample()  # representacao da temperatura na serie de fourier, linha da base de treino
 
 # COMMAND ----------
 
@@ -282,18 +276,23 @@ X = dp.in_sample()  # create features for dates in temperature.index
 
 # COMMAND ----------
 
+# valores de target
 y = temperature["MeanSeaTemperature"]
 
+# modelo e fit
 model = LinearRegression(fit_intercept=False)
 _ = model.fit(X, y)
 
-y_pred = pd.Series(model.predict(X), index=y.index)
-X_fore = dp.out_of_sample(steps=360)
-y_fore = pd.Series(model.predict(X_fore), index=X_fore.index)
+# previsao
+y_pred = pd.Series(model.predict(X), index=y.index) # dados de target previstos usando dados historicos, mesmo linha do tempo de y
+
+# forecast
+X_fore = dp.out_of_sample(steps=360)                          # representacao da temperatura na serie de fourier, linha de forecast
+y_fore = pd.Series(model.predict(X_fore), index=X_fore.index) # dados de target previstos usando dados gerados pela serie de fourier, forecast
 
 ax = y.plot(color='0.25', style='.', title="Sea Temperature - Seasonal Forecast")
-ax = y_pred.plot(ax=ax, label="Seasonal")
-ax = y_fore.plot(ax=ax, label="Seasonal Forecast", color='C3')
+ax = y_pred.plot(ax=ax, label="Seasonal")                     # plota grafico de target dentro da linha do tempo dos dados historicos
+ax = y_fore.plot(ax=ax, label="Seasonal Forecast", color='C3')# plota grafico de target apos os dados historicos, forecast
 _ = ax.legend()
 
 # COMMAND ----------
