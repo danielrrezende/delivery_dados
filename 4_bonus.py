@@ -111,6 +111,10 @@ display(fig)
 
 # MAGIC %md
 # MAGIC ## Sazonalidade
+# MAGIC 
+# MAGIC Algo que ocorre em determinados periodos de tempo, que influenciam determinado fato
+# MAGIC 
+# MAGIC No caso, estações do ano podem influenciar a temperatura do lago
 
 # COMMAND ----------
 

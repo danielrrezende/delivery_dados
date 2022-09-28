@@ -241,3 +241,10 @@ df_waves.select(*[(
                   ).alias(c)
                   for c, t in df_waves.dtypes if c in df_waves.columns
                  ]).show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Optei por nao fazer fill pelo fato de preferir fazer as analises com dados reais, crus
+# MAGIC 
+# MAGIC Caso fosse montar algum modelo, eu faria fill com dados médios POR ESTACAO
