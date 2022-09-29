@@ -250,22 +250,40 @@ display(plot_periodogram(temperature.MeanSeaTemperature))
 # MAGIC %md
 # MAGIC ### Deterministic Process
 # MAGIC 
-# MAGIC DeterministicProcess, usado para criar recursos de tendência. Para usar dois períodos sazonais (semanal e anual), precisaremos instanciar um deles como um "termo adicional". O argumento de ordem refere-se à ordem polinomial: 1 para linear, 2 para quadrático, 3 para cúbico e assim por diante.
+# MAGIC Quando os valores futuros de amostras podem ser previstos a partir de dados historicos
+# MAGIC 
+# MAGIC Usado para criar features de tendência.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Tanto o gráfico sazonal quanto o periodograma sugerem uma forte sazonalidade ANUAL.
+# MAGIC 
+# MAGIC De fato, de acordo com as estacoes do ano, indicam uma queda de temperatura no inverno (primero e ultimos meses do ano), e alta de temperatua (meio do ano) – uma possível origem para essa sazonalidade.
 
 # COMMAND ----------
 
 from statsmodels.tsa.deterministic import CalendarFourier, DeterministicProcess
 
-fourier = CalendarFourier(freq="A", order=10)  # 10 sin/cos pairs for "A"nnual seasonality
+fourier = CalendarFourier(freq="A", order=12)  # 12 sin/cos pairs for "A"nnual seasonality
 
+# Para usar períodos sazonais, precisaremos instanciar um deles como um "additional_terms". 
 dp = DeterministicProcess(
     index=temperature.index,
-    order=1,                     # trend (order 1 means linear)
-    seasonal=True,               # weekly seasonality (indicators) 
-    additional_terms=[fourier],  # annual seasonality (fourier) Para usar dois períodos sazonais (semanal e anual), precisaremos instanciar um deles como um "termo adicional"
+    order=1,                     # trend (ordem polinominal 1 linear, 2 para quadrático, 3 para cúbico)
+    seasonal=True,               # seasonality (indicators) - se false, ele sobrepoe ao peiodo anterior
+    additional_terms=[fourier]   # annual seasonality (fourier) 
 )
 
 X = dp.in_sample()  # representacao da temperatura na serie de fourier, linha da base de treino
+
+# COMMAND ----------
+
+# X
+
+# COMMAND ----------
+
+# display(X[['sin(12,freq=A-DEC)','cos(12,freq=A-DEC)']].query('index < "2022-12-30"').plot())
 
 # COMMAND ----------
 
@@ -288,11 +306,12 @@ y_pred = pd.Series(model.predict(X), index=y.index) # dados de target previstos 
 
 # forecast
 X_fore = dp.out_of_sample(steps=360)                          # representacao da temperatura na serie de fourier, linha de forecast
-y_fore = pd.Series(model.predict(X_fore), index=X_fore.index) # dados de target previstos usando dados gerados pela serie de fourier, forecast
+y_fore = pd.Series(model.predict(X_fore), index=X_fore.index) # dados de target usando dados gerados pela serie de fourier, forecast
 
-ax = y.plot(color='0.25', style='.', title="Sea Temperature - Seasonal Forecast")
-ax = y_pred.plot(ax=ax, label="Seasonal")                     # plota grafico de target dentro da linha do tempo dos dados historicos
-ax = y_fore.plot(ax=ax, label="Seasonal Forecast", color='C3')# plota grafico de target apos os dados historicos, forecast
+# grafico
+ax = y.plot(color='0.25', style='.', title="Sea Temperature - Seasonal Forecast") # configura pontos dos dados de target reais grafico
+ax = y_pred.plot(ax=ax, label="Seasonal")                     # plota grafico de target previsto dentro da linha do tempo dos dados historicos
+ax = y_fore.plot(ax=ax, label="Seasonal Forecast", color='C3')# plota grafico de target previsto apos os dados historicos, forecast
 _ = ax.legend()
 
 # COMMAND ----------
