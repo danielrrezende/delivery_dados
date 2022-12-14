@@ -1,8 +1,4 @@
 # Databricks notebook source
-# MAGIC %run ./3_perguntas
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC # Bonus items
 # MAGIC 
@@ -21,26 +17,106 @@
 
 # COMMAND ----------
 
+from pyspark.sql.functions import *
+from pyspark.context import SparkContext
+from pyspark.sql.session import SparkSession
+from pyspark.sql.types import IntegerType, FloatType, DoubleType, DateType, TimestampType, StringType
+from pyspark.sql import functions as F
+from pyspark.sql.window import Window
+
+import pandas as pd
+
+from datetime import date, datetime, timedelta
+
+from pandas_profiling import ProfileReport
+
+import plotly.express as px
+
+# COMMAND ----------
+
+# STEP 1: RUN THIS CELL TO INSTALL BAMBOOLIB
+
+# You can also install bamboolib on the cluster. Just talk to your cluster admin for that
+# %pip install bamboolib  
+
+# Heads up: this will restart your python kernel, so you may need to re-execute some of your other code cells.
+
+# COMMAND ----------
+
+# STEP 2: RUN THIS CELL TO IMPORT AND USE BAMBOOLIB
+
+# import bamboolib as bam
+
+# This opens a UI from which you can import your data
+# bam  
+
+# Already have a pandas data frame? Just display it!
+# Here's an example
+# import pandas as pd
+# df_test = pd.DataFrame(dict(a=[1,2]))
+# df_test  # <- You will see a green button above the data set if you display it
+
+# COMMAND ----------
+
+# File location and type
+file_location = "/FileStore/tables/df_top_norte-2.csv"
+file_type = "csv"
+
+# CSV options
+infer_schema = "false"
+first_row_is_header = "true"
+delimiter = ","
+
+# The applied options are for CSV files. For other file types, these will be ignored.
+df_waves = spark.read.format(file_type) \
+                     .option("inferSchema", infer_schema) \
+                     .option("header", first_row_is_header) \
+                     .option("sep", delimiter) \
+                     .load(file_location)\
+                     .drop('ds1')\
+                     .withColumnRenamed('ds0', 'time')\
+                     .withColumnRenamed('y', 'MeanSeaTemperature')
+
+display(df_waves)
+
+# COMMAND ----------
+
+# funcção converte string para datetime
+# func_time_datetime =  udf (lambda x: datetime.strptime(x, '%Y-%m-%dT%H:%M:%SZ'), DateType())
+func_time_datetime =  udf (lambda x: datetime.strptime(x, '%Y-%m-%d'), DateType())
+
+func_time_stamp_simples =  udf (lambda x: datetime.strptime(x, '%Y-%m-%d'), TimestampType())
+
+# COMMAND ----------
+
 # muda tipagem de time de string para datetime (por causa do formato %y%m%d)
 df_waves_timser = df_waves.withColumn('timedt', func_time_datetime(col('time')))
+# display(df_waves_timser)
 
-# Agrupe os dados por 'time' e tire a média se houver vários valores 'SeaTemperature' no mesmo dia
-df_waves_timser = df_waves_timser.groupBy('timedt')\
-                          .agg(F.mean("SeaTemperature").alias("MeanSeaTemperature"))
+# # Agrupe os dados por 'time' e tire a média se houver vários valores 'SeaTemperature' no mesmo dia
+# df_waves_timser = df_waves_timser.groupBy('timedt')\
+#                           .agg(F.mean("SeaTemperature").alias("MeanSeaTemperature"))
 
-# com o time agrupado, voltar para string
+# # com o time agrupado, voltar para string
 df_waves_timser = df_waves_timser.withColumn('timestr', date_format('timedt',"yyyy-MM-dd"))
+# display(df_waves_timser)
 
-# muda tipagem de string para timestamp
+# # muda tipagem de string para timestamp
 df_waves_timser = df_waves_timser.withColumn('time', func_time_stamp_simples(col('timestr')))
+# display(df_waves_timser)
 
-# apaga colunas desnecessarias
+# # apaga colunas desnecessarias
 df_waves_timser = df_waves_timser.drop('timedt', 'timestr')
+# display(df_waves_timser)
 
-# organiza as colunas e ordena as datas por ordem crescente
+# # organiza as colunas e ordena as datas por ordem crescente
 df_waves_timser = df_waves_timser.select('time', 'MeanSeaTemperature').orderBy('time')
+# display(df_waves_timser)
 
-# converte para dataframe pandas
+df_waves_timser = df_waves_timser.withColumnRenamed('time', 'ds0')\
+                                 .withColumnRenamed('MeanSeaTemperature', 'y')
+
+# # converte para dataframe pandas
 pd_waves_timser = df_waves_timser.toPandas()
 display(pd_waves_timser)
 
